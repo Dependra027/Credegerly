@@ -1,0 +1,101 @@
+{% extends 'finance_app/base.html' %}
+
+{% block title %}{{ article.title }} - Credgerly{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            {% if article.image_url %}
+            <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="max-height: 400px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="mb-2">
+                            {% if article.article_type == 'news' %}
+                            <span class="badge bg-info me-2">News</span>
+                            {% else %}
+                            <span class="badge bg-secondary me-2">Article</span>
+                            {% endif %}
+                            {% if article.category %}
+                            <span class="badge bg-primary">{{ article.category }}</span>
+                            {% endif %}
+                        </div>
+                        <h2 class="mb-2">{{ article.title }}</h2>
+                        <p class="text-muted mb-0">
+                            {% if article.author %}
+                            <i class="bi bi-person"></i> {{ article.author }}
+                            {% elif article.user %}
+                            <i class="bi bi-person"></i> {{ article.user.username }}
+                            {% endif %}
+                            {% if article.created_at %}
+                            | <i class="bi bi-calendar"></i> {{ article.created_at|date:"F d, Y" }}
+                            {% endif %}
+                        </p>
+                        {% if article.article_type == 'news' and article.source %}
+                        <p class="mt-2">
+                            <a href="{{ article.source }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-box-arrow-up-right"></i> Read Original Source
+                            </a>
+                        </p>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-eye"></i> {{ article.view_count }} views
+                    </small>
+                </div>
+                
+                <hr>
+                
+                <div class="article-content" style="line-height: 1.8;">
+                    {{ article.content|linebreaks }}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'articles' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Articles
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        {% if related_articles %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-collection"></i> Related Articles</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for related in related_articles %}
+                <a href="{% url 'article_detail' related.pk %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ related.title }}</h6>
+                    </div>
+                    {% if related.summary %}
+                    <p class="mb-1 text-muted small">{{ related.summary|truncatewords:10 }}</p>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-info-circle"></i> About</h6>
+                <p class="small text-muted mb-0">
+                    {% if article.article_type == 'news' %}
+                    This is a global financial news article fetched from external sources. Click "Read Original Source" to view the full article on the original website.
+                    {% else %}
+                    Our articles are curated to help you improve your financial literacy and make better money decisions. 
+                    Topics cover budgeting, saving, investing, and more.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

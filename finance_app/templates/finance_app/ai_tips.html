@@ -1,0 +1,478 @@
+{% extends 'finance_app/base.html' %}
+{% load currency_tags %}
+
+{% block title %}AI Tips - Credgerly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-robot"></i> AI Savings Tips</h2>
+        <div class="small text-muted">
+            Personalized recommendations based on your spending patterns
+            {% if tips_generated_at %}
+            <span class="ms-2" id="lastUpdated">
+                <i class="bi bi-clock"></i> Updated: <span id="updateTime" data-original-time="{{ tips_generated_at|date:"c" }}">{{ tips_generated_at|date:"H:i:s" }}</span>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button id="autoRefreshBtn" class="btn btn-outline-primary" onclick="toggleAutoRefresh()">
+            <i class="bi bi-arrow-repeat" id="autoRefreshIcon"></i> 
+            <span id="autoRefreshText">Auto Refresh</span>
+        </button>
+        <a href="{% url 'ai_tips' %}?refresh=1" class="btn btn-primary" id="refreshBtn">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Now
+        </a>
+    </div>
+</div>
+
+{% if error_message %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> {{ error_message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">This Month</h6>
+                        <h3 class="mb-0">{{ spending_summary.total_spent|currency:user }}</h3>
+                        <small class="text-muted">{{ spending_summary.expense_count }} transactions</small>
+                    </div>
+                    <div class="text-primary" style="font-size: 2.5rem;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Spending Summary</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Top Spending Categories:</strong> 
+                    {% if spending_summary.category_breakdown %}
+                        <ul class="mb-0 small">
+                            {% for cat in spending_summary.category_breakdown %}
+                            <li>{{ cat }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% elif spending_summary.top_categories %}
+                        {{ spending_summary.top_categories|join:", " }}
+                    {% else %}
+                        No data yet
+                    {% endif %}
+                </p>
+                <p class="mb-2"><strong>Budget Status:</strong> {{ spending_summary.budget_info }}</p>
+                {% if spending_summary.last_month_total > 0 %}
+                <p class="mb-0">
+                    <strong>Spending Trend:</strong> 
+                    {% if spending_summary.spending_change > 0 %}
+                        <span class="text-danger">↑ {{ spending_summary.spending_change|floatformat:1 }}% increase</span> from last month
+                    {% elif spending_summary.spending_change < 0 %}
+                        <span class="text-success">↓ {{ spending_summary.spending_change|floatformat:1 }}% decrease</span> from last month
+                    {% else %}
+                        No change from last month
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm" id="tipsCard">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-lightbulb"></i> 
+            {% if has_api_key %}AI-Generated{% else %}Practical{% endif %} Savings Tips
+            {% if has_api_key %}
+            <span class="badge bg-success ms-2" id="liveBadge">
+                <span class="spinner-grow spinner-grow-sm" role="status"></span> Live
+            </span>
+            {% endif %}
+        </h5>
+        {% if not has_api_key %}
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> Set OPENAI_API_KEY environment variable for AI tips
+        </small>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if ai_tips %}
+            <div class="tips-list">
+                {% for tip in ai_tips %}
+                <div class="tip-item">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="tip-icon">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0 tip-text">{{ tip|safe }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% if not forloop.last %}
+                <hr class="tip-divider">
+                {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: var(--text-secondary);"></i>
+                <p class="text-muted mt-3">No tips available at the moment.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-question-circle"></i> How It Works</h6>
+                <p class="mb-2">Our AI analyzes your spending patterns, budget status, and top categories to provide personalized savings recommendations.</p>
+                <ul class="mb-0">
+                    <li>Tips are generated based on your current month's spending data</li>
+                    <li>Recommendations focus on actionable steps you can take today</li>
+                    <li>Refresh the page to get new tips as your spending patterns change</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tips-list {
+        padding: 0;
+    }
+    
+    .tip-item {
+        padding: 1rem 0;
+        transition: background-color 0.2s, padding 0.2s, margin 0.2s;
+    }
+    
+    .tip-item:hover {
+        background-color: var(--bg-secondary);
+        border-radius: 8px;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+    }
+    
+    .tip-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #3B82F6;
+        flex-shrink: 0;
+        transition: background-color 0.2s, color 0.2s;
+    }
+    
+    .tip-text {
+        color: var(--text-primary);
+        line-height: 1.6;
+    }
+    
+    .tip-divider {
+        margin: 0;
+        border-color: var(--border-color);
+        opacity: 0.5;
+    }
+    
+    [data-theme="dark"] .tip-icon {
+        background-color: rgba(96, 165, 250, 0.2);
+        color: #60A5FA;
+    }
+    
+    [data-theme="dark"] .tip-item:hover {
+        background-color: #2A2A2A;
+    }
+    
+    [data-theme="dark"] .tip-text {
+        color: var(--text-primary);
+    }
+    
+    [data-theme="dark"] .tip-divider {
+        border-color: var(--border-color);
+        opacity: 0.3;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        border-radius: 8px;
+    }
+    
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+    
+    #tipsCard {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let autoRefreshInterval = null;
+    let autoRefreshEnabled = false;
+    const REFRESH_INTERVAL = 30000; // 30 seconds for real-time updates
+    
+    function toggleAutoRefresh() {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        const btn = document.getElementById('autoRefreshBtn');
+        const icon = document.getElementById('autoRefreshIcon');
+        const text = document.getElementById('autoRefreshText');
+        
+        if (autoRefreshEnabled) {
+            // Start auto-refresh
+            autoRefreshInterval = setInterval(refreshTips, REFRESH_INTERVAL);
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-primary');
+            icon.classList.add('spinner-border', 'spinner-border-sm');
+            text.textContent = 'Auto Refresh ON';
+            console.log('Auto-refresh enabled: refreshing every ' + (REFRESH_INTERVAL/1000) + ' seconds');
+        } else {
+            // Stop auto-refresh
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+            icon.classList.remove('spinner-border', 'spinner-border-sm');
+            text.textContent = 'Auto Refresh';
+            console.log('Auto-refresh disabled');
+        }
+    }
+    
+    function refreshTips() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        const tipsCard = document.getElementById('tipsCard');
+        const tipsList = tipsCard.querySelector('.tips-list') || tipsCard.querySelector('.card-body');
+        
+        // Show loading overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>';
+        tipsCard.style.position = 'relative';
+        tipsCard.appendChild(overlay);
+        
+        // Disable refresh button
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Refreshing...';
+        }
+        
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const url = '{% url "ai_tips" %}?refresh=1&t=' + timestamp;
+        
+        // Fetch new tips via AJAX
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            },
+            cache: 'no-store'
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            }
+            return response.text();
+        })
+        .then(data => {
+            if (typeof data === 'object') {
+                // Handle JSON response
+                updateTipsFromJSON(data);
+            } else {
+                // Handle HTML response (fallback)
+                updateTipsFromHTML(data);
+            }
+            
+            // Remove loading overlay
+            overlay.remove();
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh Now';
+            }
+            
+            // Show success message
+            showNotification('Tips refreshed successfully!', 'success');
+        })
+        .catch(error => {
+            console.error('Error refreshing tips:', error);
+            overlay.remove();
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh Now';
+            }
+            showNotification('Failed to refresh tips. Please try again.', 'danger');
+        });
+    }
+    
+    function updateTipsFromJSON(data) {
+        // Update tips list
+        const tipsList = document.querySelector('.tips-list');
+        if (tipsList && data.ai_tips) {
+            tipsList.innerHTML = '';
+            data.ai_tips.forEach((tip, index) => {
+                const tipItem = document.createElement('div');
+                tipItem.className = 'tip-item';
+                tipItem.innerHTML = `
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="tip-icon">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0 tip-text">${tip}</p>
+                        </div>
+                    </div>
+                `;
+                tipsList.appendChild(tipItem);
+                if (index < data.ai_tips.length - 1) {
+                    const divider = document.createElement('hr');
+                    divider.className = 'tip-divider';
+                    tipsList.appendChild(divider);
+                }
+            });
+        }
+        
+        // Update spending summary
+        if (data.spending_summary) {
+            const summary = data.spending_summary;
+            const totalSpentEl = document.querySelector('.card.stat-card h3');
+            if (totalSpentEl) {
+                totalSpentEl.textContent = '$' + parseFloat(summary.total_spent).toFixed(2);
+            }
+        }
+        
+        // Update timestamp
+        const timeElement = document.getElementById('updateTime');
+        if (timeElement && data.tips_generated_at) {
+            timeElement.textContent = data.tips_generated_at;
+            if (data.tips_generated_at_iso) {
+                timeElement.dataset.originalTime = data.tips_generated_at_iso;
+            }
+        }
+    }
+    
+    function updateTipsFromHTML(html) {
+        // Fallback: parse HTML response
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newTipsCard = doc.querySelector('#tipsCard');
+        
+        if (newTipsCard) {
+            const currentTipsCard = document.getElementById('tipsCard');
+            const newBody = newTipsCard.querySelector('.card-body');
+            if (newBody && currentTipsCard) {
+                currentTipsCard.querySelector('.card-body').innerHTML = newBody.innerHTML;
+            }
+        }
+    }
+    
+    function showNotification(message, type) {
+        // Create notification alert
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            alert.remove();
+        }, 3000);
+    }
+    
+    // Update timestamp every second to show "X seconds ago"
+    function updateTimestamp() {
+        const timeElement = document.getElementById('updateTime');
+        if (timeElement) {
+            const originalTimeStr = timeElement.dataset.originalTime;
+            if (originalTimeStr) {
+                try {
+                    const originalTime = new Date(originalTimeStr);
+                    const now = new Date();
+                    const diff = Math.floor((now - originalTime) / 1000);
+                    
+                    if (diff < 60) {
+                        timeElement.textContent = diff + 's ago';
+                    } else if (diff < 3600) {
+                        timeElement.textContent = Math.floor(diff / 60) + 'm ago';
+                    } else {
+                        timeElement.textContent = originalTime.toLocaleTimeString();
+                    }
+                } catch (e) {
+                    // If parsing fails, just show the time as is
+                }
+            }
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const timeElement = document.getElementById('updateTime');
+        if (timeElement) {
+            // Store original time if available
+            const originalTime = '{{ tips_generated_at|date:"c" }}';
+            if (originalTime && originalTime !== 'None') {
+                timeElement.dataset.originalTime = originalTime;
+                // Update timestamp every second
+                setInterval(updateTimestamp, 1000);
+                updateTimestamp(); // Initial update
+            }
+        }
+        
+        // Note: Auto-refresh is disabled by default - user can enable it
+        // Uncomment the line below to enable auto-refresh on page load
+        // toggleAutoRefresh();
+    });
+    
+    // Clean up on page unload
+    window.addEventListener('beforeunload', function() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+    });
+</script>
+{% endblock %}
+
+

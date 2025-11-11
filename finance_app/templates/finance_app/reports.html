@@ -1,0 +1,345 @@
+{% extends 'finance_app/base.html' %}
+{% load currency_tags %}
+
+{% block title %}Reports & Analytics - Credgerly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-graph-up"></i> Reports & Analytics</h2>
+        <div class="small text-muted">Visualize spending, spot trends, and compare categories</div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <div class="btn-group" role="group" aria-label="Quick ranges">
+            <a href="?months=3" class="btn btn-outline-secondary {% if months_back == 3 %}active{% endif %}">3M</a>
+            <a href="?months=6" class="btn btn-outline-secondary {% if months_back == 6 %}active{% endif %}">6M</a>
+            <a href="?months=12" class="btn btn-outline-secondary {% if months_back == 12 %}active{% endif %}">12M</a>
+        </div>
+        <a href="{% url 'export_csv' %}" class="btn btn-outline-primary"><i class="bi bi-filetype-csv"></i> CSV</a>
+        <a href="{% url 'export_pdf' %}" class="btn btn-primary"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100 border-0 stat-card" style="background: linear-gradient(135deg, rgba(54,162,235,.15), rgba(54,162,235,.05));">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Total Spend ({{ months_back }}M)</div>
+                        <div class="fs-4 fw-bold" style="color: inherit;">{{ total_spend|currency:user }}</div>
+                    </div>
+                    <i class="bi bi-currency-dollar fs-2 text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100 border-0 stat-card" style="background: linear-gradient(135deg, rgba(75,192,192,.15), rgba(75,192,192,.05));">
+            <div class="card-body">
+                <div class="text-muted small">Average per Month</div>
+                <div class="fs-4 fw-bold" style="color: inherit;">{{ average_monthly|currency:user }}</div>
+                <div class="small text-muted">Across {{ months_back }} months</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100 border-0 stat-card" style="background: linear-gradient(135deg, rgba(255,159,64,.15), rgba(255,159,64,.05));">
+            <div class="card-body">
+                <div class="text-muted small">Top Category</div>
+                {% if top_category %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="fs-5" style="color: inherit;">{{ top_category.icon }} {{ top_category.name }}</div>
+                    <div class="fw-bold" style="color: inherit;">{{ top_category.total|currency:user }}</div>
+                </div>
+                {% else %}
+                <div class="text-muted">No data</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Expense Distribution by Category</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryPieChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Category Comparison</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryBarChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Monthly Expense Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendLineChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Get theme-aware colors
+    function getChartColors() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        return {
+            textColor: isDark ? '#EAEAEA' : '#212529',
+            gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            // Vivid colors for charts
+            lineColor: '#3B82F6', // Blue
+            lineFill: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+            barColor: '#3B82F6', // Blue
+            barBorder: '#2563EB',
+            pieColors: [
+                'rgba(239, 68, 68, 0.9)',   // Red
+                'rgba(59, 130, 246, 0.9)',  // Blue
+                'rgba(245, 158, 11, 0.9)',  // Amber
+                'rgba(16, 185, 129, 0.9)',  // Green
+                'rgba(139, 92, 246, 0.9)',  // Purple
+                'rgba(236, 72, 153, 0.9)',  // Pink
+                'rgba(6, 182, 212, 0.9)',   // Cyan
+                'rgba(251, 146, 60, 0.9)',  // Orange
+            ]
+        };
+    }
+    
+    // Category Distribution Pie Chart
+    const pieCtx = document.getElementById('categoryPieChart').getContext('2d');
+    const pieData = {{ category_dist_json|safe }};
+    const colors = getChartColors();
+    
+    const pieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: pieData.map(item => (item.category__icon || '') + ' ' + (item.category__name || 'Uncategorized')),
+            datasets: [{
+                data: pieData.map(item => parseFloat(item.total)),
+                backgroundColor: colors.pieColors.slice(0, pieData.length),
+                borderColor: colors.textColor === '#EAEAEA' ? '#1E1E1E' : '#FFFFFF',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: colors.textColor,
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: colors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    titleColor: colors.textColor,
+                    bodyColor: colors.textColor,
+                    borderColor: colors.borderColor,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return label + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Comparison Bar Chart
+    const barCtx = document.getElementById('categoryBarChart').getContext('2d');
+    const barData = {{ category_comparison_json|safe }};
+    
+    const barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: barData.map(item => item.category__name || 'Uncategorized'),
+            datasets: [{
+                label: 'Amount ($)',
+                data: barData.map(item => parseFloat(item.total)),
+                backgroundColor: colors.barColor,
+                borderColor: colors.barBorder,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: colors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    titleColor: colors.textColor,
+                    bodyColor: colors.textColor,
+                    borderColor: colors.borderColor,
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    ticks: {
+                        color: colors.textColor
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    ticks: {
+                        color: colors.textColor,
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Monthly Trend Line Chart
+    const lineCtx = document.getElementById('trendLineChart').getContext('2d');
+    const lineData = {{ monthly_trend_json|safe }};
+    
+    const lineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: lineData.map(item => item.month),
+            datasets: [{
+                label: 'Monthly Expenses',
+                data: lineData.map(item => item.amount),
+                borderColor: colors.lineColor,
+                backgroundColor: colors.lineFill,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: colors.lineColor,
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: colors.textColor
+                    }
+                },
+                tooltip: {
+                    backgroundColor: colors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    titleColor: colors.textColor,
+                    bodyColor: colors.textColor,
+                    borderColor: colors.borderColor,
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    ticks: {
+                        color: colors.textColor
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    ticks: {
+                        color: colors.textColor,
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Update charts when theme changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                    const newColors = getChartColors();
+                    
+                    // Update pie chart
+                    pieChart.options.plugins.legend.labels.color = newColors.textColor;
+                    pieChart.options.plugins.tooltip.backgroundColor = newColors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                    pieChart.options.plugins.tooltip.titleColor = newColors.textColor;
+                    pieChart.options.plugins.tooltip.bodyColor = newColors.textColor;
+                    pieChart.update();
+                    
+                    // Update bar chart
+                    barChart.data.datasets[0].backgroundColor = newColors.barColor;
+                    barChart.data.datasets[0].borderColor = newColors.barBorder;
+                    barChart.options.scales.x.grid.color = newColors.gridColor;
+                    barChart.options.scales.x.ticks.color = newColors.textColor;
+                    barChart.options.scales.y.grid.color = newColors.gridColor;
+                    barChart.options.scales.y.ticks.color = newColors.textColor;
+                    barChart.options.plugins.tooltip.backgroundColor = newColors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                    barChart.options.plugins.tooltip.titleColor = newColors.textColor;
+                    barChart.options.plugins.tooltip.bodyColor = newColors.textColor;
+                    barChart.update();
+                    
+                    // Update line chart
+                    lineChart.data.datasets[0].borderColor = newColors.lineColor;
+                    lineChart.data.datasets[0].backgroundColor = newColors.lineFill;
+                    lineChart.options.plugins.legend.labels.color = newColors.textColor;
+                    lineChart.options.scales.x.grid.color = newColors.gridColor;
+                    lineChart.options.scales.x.ticks.color = newColors.textColor;
+                    lineChart.options.scales.y.grid.color = newColors.gridColor;
+                    lineChart.options.scales.y.ticks.color = newColors.textColor;
+                    lineChart.options.plugins.tooltip.backgroundColor = newColors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                    lineChart.options.plugins.tooltip.titleColor = newColors.textColor;
+                    lineChart.options.plugins.tooltip.bodyColor = newColors.textColor;
+                    lineChart.update();
+                }
+            });
+        });
+        observer.observe(document.documentElement, { attributes: true });
+    });
+</script>
+{% endblock %}
+

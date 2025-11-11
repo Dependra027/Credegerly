@@ -1,0 +1,418 @@
+{% extends 'finance_app/base.html' %}
+{% load currency_tags %}
+
+{% block title %}Dashboard - Credgerly{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Expenses</h6>
+                        <h3 class="mb-0">{{ total_expenses|currency:user }}</h3>
+                        <small class="text-muted">{{ expense_count }} transactions</small>
+                    </div>
+                    <div class="text-primary" style="font-size: 2.5rem;">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Monthly Budget</h6>
+                        {% if current_budget %}
+                            <h3 class="mb-0">{{ current_budget.amount|currency:user }}</h3>
+                            <small class="text-muted">{{ current_budget.month }}/{{ current_budget.year }}</small>
+                        {% else %}
+                            <h3 class="mb-0">Not Set</h3>
+                            <small><a href="{% url 'budget_create' %}">Set Budget</a></small>
+                        {% endif %}
+                    </div>
+                    <div class="text-success" style="font-size: 2.5rem;">
+                        <i class="bi bi-piggy-bank"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Remaining</h6>
+                        {% if current_budget %}
+                            <h3 class="mb-0 {% if is_over_budget %}text-danger{% else %}text-success{% endif %}">
+                                {{ remaining_budget|currency:user }}
+                            </h3>
+                            <small class="text-muted">{{ budget_percentage|floatformat:1 }}% used</small>
+                        {% else %}
+                            <h3 class="mb-0">-</h3>
+                        {% endif %}
+                    </div>
+                    <div class="text-info" style="font-size: 2.5rem;">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Upcoming Bills</h6>
+                        <h3 class="mb-0">{{ upcoming_expenses|length }}</h3>
+                        <small class="text-muted">Next 7 days</small>
+                    </div>
+                    <div class="text-warning" style="font-size: 2.5rem;">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_budget %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Budget Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Spent: {{ total_expenses|currency:user }} / {{ current_budget.amount|currency:user }}</span>
+                    <span class="{% if is_over_budget %}text-danger{% else %}text-success{% endif %}">
+                        {{ budget_percentage|floatformat:1 }}%
+                    </span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar {% if is_over_budget %}bg-danger{% elif budget_percentage > 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ budget_percentage }}%"
+                         aria-valuenow="{{ budget_percentage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+                {% if is_over_budget %}
+                    <div class="alert alert-danger mt-2 mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> You have exceeded your budget!
+                    </div>
+                {% elif budget_percentage > 80 %}
+                    <div class="alert alert-warning mt-2 mb-0">
+                        <i class="bi bi-exclamation-circle"></i> You're close to your budget limit.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Monthly Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Category Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Expenses</h5>
+                <a href="{% url 'expense_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_expenses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td>{{ expense.date|date:"M d" }}</td>
+                                    <td>{{ expense.title }}</td>
+                                    <td>
+                                        {% if expense.category %}
+                                            {{ expense.category.icon }} {{ expense.category.name }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">${{ expense.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No expenses yet. <a href="{% url 'expense_create' %}">Add your first expense</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Upcoming Bills</h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_expenses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in upcoming_expenses %}
+                                <tr>
+                                    <td>{{ expense.date|date:"M d" }}</td>
+                                    <td>{{ expense.title }}</td>
+                                    <td>
+                                        {% if expense.category %}
+                                            {{ expense.category.icon }} {{ expense.category.name }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">${{ expense.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No upcoming expenses in the next 7 days.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{% url 'expense_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Expense
+            </a>
+            <a href="{% url 'budget_create' %}" class="btn btn-success">
+                <i class="bi bi-piggy-bank"></i> Set Budget
+            </a>
+            <a href="{% url 'reports' %}" class="btn btn-info">
+                <i class="bi bi-graph-up"></i> View Reports
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Get theme-aware colors
+    function getChartColors() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        return {
+            textColor: isDark ? '#EAEAEA' : '#212529',
+            gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            // Vivid colors for charts
+            lineColor: '#3B82F6', // Blue
+            lineFill: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+            pieColors: [
+                'rgba(239, 68, 68, 0.9)',   // Red
+                'rgba(59, 130, 246, 0.9)',  // Blue
+                'rgba(245, 158, 11, 0.9)',  // Amber
+                'rgba(16, 185, 129, 0.9)',  // Green
+                'rgba(139, 92, 246, 0.9)',  // Purple
+                'rgba(236, 72, 153, 0.9)',  // Pink
+                'rgba(6, 182, 212, 0.9)',   // Cyan
+                'rgba(251, 146, 60, 0.9)',  // Orange
+            ]
+        };
+    }
+    
+    // Monthly Trend Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    const trendData = {{ monthly_trends_json|safe }};
+    const colors = getChartColors();
+    
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendData.map(item => item.month),
+            datasets: [{
+                label: 'Expenses',
+                data: trendData.map(item => item.amount),
+                borderColor: colors.lineColor,
+                backgroundColor: colors.lineFill,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: colors.lineColor,
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: colors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    titleColor: colors.textColor,
+                    bodyColor: colors.textColor,
+                    borderColor: colors.borderColor,
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    ticks: {
+                        color: colors.textColor
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    ticks: {
+                        color: colors.textColor,
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Breakdown Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryData = {{ category_data_json|safe }};
+    
+    const categoryChart = new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+            labels: categoryData.map(item => item.category__name || 'Uncategorized'),
+            datasets: [{
+                data: categoryData.map(item => parseFloat(item.total)),
+                backgroundColor: colors.pieColors.slice(0, categoryData.length),
+                borderColor: colors.textColor === '#EAEAEA' ? '#1E1E1E' : '#FFFFFF',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: colors.textColor,
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: colors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    titleColor: colors.textColor,
+                    bodyColor: colors.textColor,
+                    borderColor: colors.borderColor,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': $' + context.parsed.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Update charts when theme changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                    const newColors = getChartColors();
+                    // Update trend chart
+                    trendChart.data.datasets[0].borderColor = newColors.lineColor;
+                    trendChart.data.datasets[0].backgroundColor = newColors.lineFill;
+                    trendChart.options.scales.x.grid.color = newColors.gridColor;
+                    trendChart.options.scales.x.ticks.color = newColors.textColor;
+                    trendChart.options.scales.y.grid.color = newColors.gridColor;
+                    trendChart.options.scales.y.ticks.color = newColors.textColor;
+                    trendChart.options.plugins.tooltip.backgroundColor = newColors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                    trendChart.options.plugins.tooltip.titleColor = newColors.textColor;
+                    trendChart.options.plugins.tooltip.bodyColor = newColors.textColor;
+                    trendChart.update();
+                    
+                    // Update category chart
+                    categoryChart.options.plugins.legend.labels.color = newColors.textColor;
+                    categoryChart.options.plugins.tooltip.backgroundColor = newColors.textColor === '#EAEAEA' ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                    categoryChart.options.plugins.tooltip.titleColor = newColors.textColor;
+                    categoryChart.options.plugins.tooltip.bodyColor = newColors.textColor;
+                    categoryChart.update();
+                }
+            });
+        });
+        observer.observe(document.documentElement, { attributes: true });
+    });
+</script>
+{% endblock %}
+

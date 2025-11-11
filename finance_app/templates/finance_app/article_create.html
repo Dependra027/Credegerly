@@ -1,0 +1,80 @@
+{% extends 'finance_app/base.html' %}
+
+{% block title %}Add Article - Credgerly{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-file-earmark-plus"></i> Submit Your Article</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> Please correct the errors below.
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Article Title *</label>
+                        {{ form.title }}
+                        <div class="form-text">Enter a clear and descriptive title for your article</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_summary" class="form-label">Summary</label>
+                        {{ form.summary }}
+                        <div class="form-text">A brief summary of your article (max 500 characters)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_content" class="form-label">Article Content *</label>
+                        {{ form.content }}
+                        <div class="form-text">Write your full article content here</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_category" class="form-label">Category</label>
+                            {{ form.category }}
+                            <div class="form-text">e.g., Savings, Investing, Budgeting, Credit</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_author" class="form-label">Author Name</label>
+                            {{ form.author }}
+                            <div class="form-text">Your name (optional)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_image_url" class="form-label">Image URL</label>
+                        {{ form.image_url }}
+                        <div class="form-text">Optional: URL to an image for your article</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Note:</strong> Your article will be reviewed before being published. Thank you for contributing!
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'articles' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Submit Article
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

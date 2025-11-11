@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Credgerly{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --accent-color: #3B82F6;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --sidebar-bg: #f8f9fa;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #121212;
+            --bg-secondary: #1E1E1E;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+            --accent-color: #3B82F6;
+            --card-bg: #1E1E1E;
+            --border-color: #2A2A2A;
+            --sidebar-bg: #1E1E1E;
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        [data-theme="dark"] .card {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-header {
+            background-color: var(--bg-secondary);
+            border-bottom-color: var(--border-color);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        [data-theme="dark"] .card-header {
+            background-color: #2A2A2A;
+        }
+        
+        .navbar {
+            background-color: var(--card-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        [data-theme="dark"] .navbar {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .navbar-brand,
+        .nav-link {
+            color: var(--text-primary) !important;
+            transition: color 0.2s;
+        }
+        
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+        }
+        
+        [data-theme="dark"] .nav-link:hover {
+            color: #60A5FA !important;
+        }
+        
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            min-height: calc(100vh - 56px);
+            border-right: 1px solid var(--border-color);
+        }
+        
+        .form-control, .form-select {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+        
+        /* Headings and text elements */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-primary);
+        }
+        
+        .text-muted {
+            color: var(--text-secondary) !important;
+        }
+        
+        /* Tables */
+        .table {
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .table:not(.table-dark) {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+        
+        [data-theme="dark"] .table:not(.table-dark) th,
+        [data-theme="dark"] .table:not(.table-dark) td {
+            background-color: transparent !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+        
+        [data-theme="dark"] .table-hover tbody tr:hover {
+            background-color: #2A2A2A !important;
+            color: var(--text-primary) !important;
+        }
+        
+        [data-theme="dark"] .table-info {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        /* Dropdown menus */
+        [data-theme="dark"] .dropdown-menu {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        [data-theme="dark"] .dropdown-item {
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .dropdown-item:hover,
+        [data-theme="dark"] .dropdown-item:focus {
+            background-color: #2A2A2A;
+            color: var(--text-primary);
+        }
+        
+        /* Buttons */
+        [data-theme="dark"] .btn-outline-secondary {
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .btn-outline-secondary:hover {
+            background-color: #2A2A2A;
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .btn-outline-primary {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        [data-theme="dark"] .btn-outline-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #FFFFFF;
+        }
+        
+        [data-theme="dark"] .btn-outline-danger {
+            color: #EF4444;
+            border-color: #EF4444;
+        }
+        
+        [data-theme="dark"] .btn-outline-danger:hover {
+            background-color: #EF4444;
+            border-color: #EF4444;
+            color: #FFFFFF;
+        }
+        
+        [data-theme="dark"] .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        [data-theme="dark"] .btn-primary:hover {
+            background-color: #2563EB;
+            border-color: #2563EB;
+        }
+        
+        /* Icons */
+        [data-theme="dark"] i {
+            color: inherit;
+        }
+        
+        [data-theme="dark"] .text-primary {
+            color: var(--accent-color) !important;
+        }
+        
+        [data-theme="dark"] .text-success {
+            color: #10B981 !important;
+        }
+        
+        [data-theme="dark"] .text-danger {
+            color: #EF4444 !important;
+        }
+        
+        [data-theme="dark"] .text-warning {
+            color: #F59E0B !important;
+        }
+        
+        [data-theme="dark"] .text-info {
+            color: #06B6D4 !important;
+        }
+        
+        /* Placeholder color */
+        [data-theme="dark"] .form-control::placeholder,
+        [data-theme="dark"] .form-select::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        /* Progress bars */
+        .progress {
+            height: 25px;
+            background-color: var(--bg-secondary);
+        }
+        
+        [data-theme="dark"] .progress {
+            background-color: #2A2A2A;
+        }
+        
+        /* Alerts */
+        [data-theme="dark"] .alert {
+            border-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .alert-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #FCA5A5;
+        }
+        
+        [data-theme="dark"] .alert-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #FCD34D;
+        }
+        
+        [data-theme="dark"] .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #6EE7B7;
+        }
+        
+        /* Stat cards */
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        [data-theme="dark"] .stat-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Modal */
+        [data-theme="dark"] .modal-content {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .modal-header {
+            border-bottom-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .modal-footer {
+            border-top-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .btn-close {
+            filter: invert(1);
+        }
+        
+        /* Links */
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            color: #2563EB;
+        }
+        
+        [data-theme="dark"] a {
+            color: #60A5FA;
+        }
+        
+        [data-theme="dark"] a:hover {
+            color: #93C5FD;
+        }
+        
+        /* Active button states */
+        [data-theme="dark"] .btn-group .btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #FFFFFF;
+        }
+        
+        /* Gradient cards in reports - override inline styles in dark mode */
+        [data-theme="dark"] .card[style*="linear-gradient"] {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1)) !important;
+            border-color: var(--border-color) !important;
+        }
+        
+        /* Specific gradient overrides for different stat cards */
+        [data-theme="dark"] .card[style*="rgba(54,162,235"] {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1)) !important;
+        }
+        
+        [data-theme="dark"] .card[style*="rgba(75,192,192"] {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.1)) !important;
+        }
+        
+        [data-theme="dark"] .card[style*="rgba(255,159,64"] {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1)) !important;
+        }
+        
+        /* Ensure all text in cards is visible */
+        [data-theme="dark"] .card-body,
+        [data-theme="dark"] .card-body .fs-4,
+        [data-theme="dark"] .card-body .fs-5,
+        [data-theme="dark"] .card-body .fw-bold {
+            color: var(--text-primary) !important;
+        }
+        
+        /* Navbar toggler icon */
+        [data-theme="dark"] .navbar-toggler {
+            border-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+        
+        /* Empty state icons */
+        [data-theme="dark"] .bi-inbox,
+        [data-theme="dark"] .bi-piggy-bank {
+            color: var(--text-secondary) !important;
+        }
+        
+        /* Form text */
+        [data-theme="dark"] .form-text {
+            color: var(--text-secondary) !important;
+        }
+        
+        /* Info alerts */
+        [data-theme="dark"] .alert-info {
+            background-color: rgba(6, 182, 212, 0.1);
+            border-color: rgba(6, 182, 212, 0.3);
+            color: #67E8F9;
+        }
+        
+        /* Secondary button */
+        [data-theme="dark"] .btn-secondary {
+            background-color: #2A2A2A;
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] .btn-secondary:hover {
+            background-color: #3A3A3A;
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        /* Success button */
+        [data-theme="dark"] .btn-success {
+            background-color: #10B981;
+            border-color: #10B981;
+        }
+        
+        [data-theme="dark"] .btn-success:hover {
+            background-color: #059669;
+            border-color: #059669;
+        }
+        
+        /* Info button */
+        [data-theme="dark"] .btn-info {
+            background-color: #06B6D4;
+            border-color: #06B6D4;
+        }
+        
+        [data-theme="dark"] .btn-info:hover {
+            background-color: #0891B2;
+            border-color: #0891B2;
+        }
+        
+        /* Divider */
+        [data-theme="dark"] .dropdown-divider {
+            border-color: var(--border-color);
+        }
+        
+        /* Footer */
+        footer {
+            margin-top: auto;
+            color: var(--text-primary);
+        }
+        
+        footer a {
+            color: var(--accent-color);
+            transition: color 0.2s;
+        }
+        
+        footer a:hover {
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] footer a {
+            color: #60A5FA;
+        }
+        
+        [data-theme="dark"] footer a:hover {
+            color: #93C5FD;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .container-fluid:not(footer .container-fluid) {
+            flex: 1;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="bi bi-wallet2"></i> Credgerly
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'expense_list' %}">
+                            <i class="bi bi-receipt"></i> Expenses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'budget_list' %}">
+                            <i class="bi bi-piggy-bank"></i> Budgets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'reports' %}">
+                            <i class="bi bi-graph-up"></i> Reports
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="smartFeaturesDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-stars"></i> Smart Features
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'ai_tips' %}">
+                                <i class="bi bi-robot"></i> AI Tips
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'articles' %}">
+                                <i class="bi bi-book"></i> Articles
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'goals' %}">
+                                <i class="bi bi-bullseye"></i> Goals
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <button class="btn btn-sm btn-outline-secondary me-2" id="themeToggle" title="Toggle Dark Mode">
+                            <i class="bi bi-moon-stars" id="themeIcon"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'export_csv' %}">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'export_pdf' %}">
+                                <i class="bi bi-file-pdf"></i> Export PDF
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="post" action="{% url 'logout' %}" class="px-3 py-1">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <div class="container-fluid mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Footer -->
+    <footer class="mt-5 py-4 border-top" style="background-color: var(--bg-secondary); border-color: var(--border-color) !important;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <h6 class="mb-2"><i class="bi bi-wallet2"></i> Credgerly</h6>
+                    <p class="text-muted small mb-0">Your digital ledger for a balanced life.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="mb-2">Contact Admin</h6>
+                    <p class="text-muted small mb-1">
+                        <strong>Dependra Singh</strong>
+                    </p>
+                    <p class="small mb-1">
+                        <a href="mailto:dependrasingh027@gmail.com" class="text-decoration-none">
+                            <i class="bi bi-envelope"></i> dependrasingh027@gmail.com
+                        </a>
+                    </p>
+                    <p class="small mb-0">
+                        <a href="https://www.linkedin.com/in/dependra-singh-397a3424a/" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                            <i class="bi bi-linkedin"></i> LinkedIn Profile
+                        </a>
+                    </p>
+                </div>
+            </div>
+            <hr class="my-3" style="border-color: var(--border-color);">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="text-muted small mb-0">
+                        &copy; {% now "Y" %} Credgerly. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Dark Mode Toggle -->
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            html.setAttribute('data-theme', 'dark');
+            themeIcon.classList.remove('bi-moon-stars');
+            themeIcon.classList.add('bi-sun');
+        }
+        
+        // Sync Chart.js font color with theme
+        function setChartTheme() {
+            if (window.Chart) {
+                const isDark = html.getAttribute('data-theme') === 'dark';
+                const textColor = isDark ? '#EAEAEA' : '#212529';
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                
+                Chart.defaults.color = textColor;
+                Chart.defaults.borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                Chart.defaults.scale.grid.color = gridColor;
+                Chart.defaults.scale.ticks.color = textColor;
+            }
+        }
+        setChartTheme();
+        
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = html.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeIcon.classList.remove('bi-sun');
+                themeIcon.classList.add('bi-moon-stars');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeIcon.classList.remove('bi-moon-stars');
+                themeIcon.classList.add('bi-sun');
+            }
+            setChartTheme();
+            // Update all existing charts
+            if (window.Chart) {
+                Chart.helpers.each(Chart.instances, function(instance) {
+                    instance.update('none');
+                });
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

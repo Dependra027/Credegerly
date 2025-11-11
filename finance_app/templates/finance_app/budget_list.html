@@ -1,0 +1,80 @@
+{% extends 'finance_app/base.html' %}
+{% load currency_tags %}
+
+{% block title %}Budgets - Credgerly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-piggy-bank"></i> Budgets</h2>
+    <a href="{% url 'budget_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Set Budget
+    </a>
+</div>
+
+<div class="row">
+    {% for budget in budgets %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-month"></i> {{ budget.month }}/{{ budget.year }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Budget:</span>
+                        <strong>{{ budget.amount|currency:user }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Spent:</span>
+                        <strong>{{ budget.total_expenses|currency:user }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Remaining:</span>
+                        <strong class="{% if budget.is_over %}text-danger{% else %}text-success{% endif %}">
+                            {{ budget.remaining|currency:user }}
+                        </strong>
+                    </div>
+                </div>
+                
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar {% if budget.is_over %}bg-danger{% elif budget.percentage > 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ budget.percentage }}%"
+                         aria-valuenow="{{ budget.percentage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ budget.percentage|floatformat:1 }}%
+                    </div>
+                </div>
+                
+                {% if budget.is_over %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Budget exceeded!
+                    </div>
+                {% elif budget.percentage > 80 %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="bi bi-exclamation-circle"></i> Close to limit
+                    </div>
+                {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle"></i> On track
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-piggy-bank" style="font-size: 3rem; color: #ccc;"></i>
+                <p class="text-muted mt-3">No budgets set yet. <a href="{% url 'budget_create' %}">Create your first budget</a></p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

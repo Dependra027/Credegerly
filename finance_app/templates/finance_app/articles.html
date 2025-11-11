@@ -1,0 +1,183 @@
+{% extends 'finance_app/base.html' %}
+
+{% block title %}Financial Articles - Credgerly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-book"></i> Financial Articles & News</h2>
+        <div class="small text-muted">Learn about budgeting, saving, investing, and stay updated with global financial news</div>
+    </div>
+    <a href="{% url 'article_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add Article
+    </a>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search by title or content..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Type</label>
+                <select name="type" class="form-select">
+                    <option value="all" {% if show_type == 'all' %}selected{% endif %}>All</option>
+                    <option value="article" {% if show_type == 'article' %}selected{% endif %}>Articles</option>
+                    <option value="news" {% if show_type == 'news' %}selected{% endif %}>News</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Featured Articles -->
+{% if featured_articles %}
+<div class="mb-4">
+    <h4 class="mb-3"><i class="bi bi-star-fill text-warning"></i> Featured Articles</h4>
+    <div class="row g-3">
+        {% for article in featured_articles %}
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 stat-card">
+                {% if article.image_url %}
+                <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="height: 200px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    {% if article.category %}
+                    <span class="badge bg-primary mb-2">{{ article.category }}</span>
+                    {% endif %}
+                    <h5 class="card-title">{{ article.title }}</h5>
+                    {% if article.summary %}
+                    <p class="card-text text-muted">{{ article.summary|truncatewords:20 }}</p>
+                    {% endif %}
+                    <a href="{% url 'article_detail' article.pk %}" class="btn btn-sm btn-outline-primary">
+                        Read More <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Global Financial News -->
+{% if news_articles %}
+<div class="mb-4">
+    <h4 class="mb-3"><i class="bi bi-newspaper text-info"></i> Global Financial News</h4>
+    <div class="row g-3">
+        {% for news in news_articles %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 border-info">
+                {% if news.image_url %}
+                <img src="{{ news.image_url }}" class="card-img-top" alt="{{ news.title }}" style="height: 180px; object-fit: cover;" onerror="this.style.display='none'">
+                {% endif %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-info">News</span>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar"></i> {{ news.created_at|date:"M d" }}
+                        </small>
+                    </div>
+                    <h6 class="card-title">{{ news.title }}</h6>
+                    {% if news.summary %}
+                    <p class="card-text text-muted small">{{ news.summary|truncatewords:15 }}</p>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <a href="{% url 'article_detail' news.pk %}" class="btn btn-sm btn-outline-info">
+                            Read <i class="bi bi-arrow-right"></i>
+                        </a>
+                        {% if news.source %}
+                        <a href="{{ news.source }}" target="_blank" class="btn btn-sm btn-link text-muted" title="View original source">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- All Articles -->
+<div>
+    <h4 class="mb-3"><i class="bi bi-book"></i> Financial Literacy Articles</h4>
+    {% if articles %}
+    <div class="row g-3">
+        {% for article in articles %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100">
+                {% if article.image_url %}
+                <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="height: 180px; object-fit: cover;" onerror="this.style.display='none'">
+                {% endif %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        {% if article.category %}
+                        <span class="badge bg-secondary">{{ article.category }}</span>
+                        {% endif %}
+                        <small class="text-muted">
+                            <i class="bi bi-eye"></i> {{ article.view_count }}
+                        </small>
+                    </div>
+                    <h6 class="card-title">{{ article.title }}</h6>
+                    {% if article.summary %}
+                    <p class="card-text text-muted small">{{ article.summary|truncatewords:15 }}</p>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <a href="{% url 'article_detail' article.pk %}" class="btn btn-sm btn-outline-primary">
+                            Read <i class="bi bi-arrow-right"></i>
+                        </a>
+                        {% if article.author %}
+                        <small class="text-muted">by {{ article.author }}</small>
+                        {% elif article.user %}
+                        <small class="text-muted">by {{ article.user.username }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: var(--text-secondary);"></i>
+            <p class="text-muted mt-3">
+                {% if show_type == 'article' %}
+                    No articles found.{% if search_query or current_category %} Try adjusting your search.{% endif %}
+                {% elif show_type == 'news' %}
+                    No news articles found.{% if search_query %} Try adjusting your search.{% endif %}
+                {% else %}
+                    No articles found.{% if search_query or current_category %} Try adjusting your search.{% endif %}
+                {% endif %}
+            </p>
+            {% if show_type != 'news' %}
+            <a href="{% url 'article_create' %}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle"></i> Submit Your First Article
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+

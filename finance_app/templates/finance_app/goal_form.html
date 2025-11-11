@@ -1,0 +1,72 @@
+{% extends 'finance_app/base.html' %}
+
+{% block title %}{{ title }} - Credgerly{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-bullseye"></i> {{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> Please correct the errors below.
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Goal Name *</label>
+                        {{ form.name }}
+                        <div class="form-text">e.g., "Trip to Europe", "New Laptop"</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_icon" class="form-label">Icon (Emoji)</label>
+                        {{ form.icon }}
+                        <div class="form-text">Choose an emoji to represent your goal</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        {{ form.description }}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_target_amount" class="form-label">Target Amount *</label>
+                            {{ form.target_amount }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_current_amount" class="form-label">Current Amount</label>
+                            {{ form.current_amount }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_target_date" class="form-label">Target Date (Optional)</label>
+                        {{ form.target_date }}
+                        <div class="form-text">When do you want to achieve this goal?</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'goals' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Goal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

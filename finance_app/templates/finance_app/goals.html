@@ -1,0 +1,205 @@
+{% extends 'finance_app/base.html' %}
+{% load currency_tags %}
+
+{% block title %}Goals - Credgerly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-bullseye"></i> Savings Goals</h2>
+        <div class="small text-muted">Track your progress toward financial goals</div>
+    </div>
+    <a href="{% url 'goal_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Create Goal
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Goals</h6>
+                        <h3 class="mb-0">{{ total_goals }}</h3>
+                        <small class="text-muted">{{ active_goals }} active</small>
+                    </div>
+                    <div class="text-primary" style="font-size: 2.5rem;">
+                        <i class="bi bi-bullseye"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Saved</h6>
+                        <h3 class="mb-0">{{ total_saved|currency:user }}</h3>
+                        <small class="text-muted">of {{ total_target|currency:user }}</small>
+                    </div>
+                    <div class="text-success" style="font-size: 2.5rem;">
+                        <i class="bi bi-piggy-bank"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Completed</h6>
+                        <h3 class="mb-0">{{ completed_goals }}</h3>
+                        <small class="text-muted">goals achieved</small>
+                    </div>
+                    <div class="text-success" style="font-size: 2.5rem;">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Progress</h6>
+                        <h3 class="mb-0">{{ overall_progress|floatformat:0 }}%</h3>
+                        <small class="text-muted">overall</small>
+                    </div>
+                    <div class="text-info" style="font-size: 2.5rem;">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goals List -->
+{% if goals %}
+<div class="row">
+    {% for goal in goals %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm h-100 {% if goal.status == 'completed' %}border-success{% elif goal.status == 'paused' %}border-warning{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <span style="font-size: 1.5rem;">{{ goal.icon }}</span> {{ goal.name }}
+                </h5>
+                <span class="badge 
+                    {% if goal.status == 'completed' %}bg-success
+                    {% elif goal.status == 'paused' %}bg-warning
+                    {% else %}bg-primary{% endif %}">
+                    {{ goal.get_status_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                {% if goal.description %}
+                <p class="text-muted small mb-3">{{ goal.description|truncatewords:15 }}</p>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Progress:</span>
+                        <strong>{{ goal.current_amount|currency:user }} / {{ goal.target_amount|currency:user }}</strong>
+                    </div>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar 
+                            {% if goal.is_completed %}bg-success
+                            {% elif goal.get_progress_percentage > 80 %}bg-warning
+                            {% else %}bg-primary{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ goal.get_progress_percentage }}%"
+                             aria-valuenow="{{ goal.get_progress_percentage }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ goal.get_progress_percentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Remaining:</span>
+                        <strong class="{% if goal.is_completed %}text-success{% else %}text-primary{% endif %}">
+                            {{ goal.get_remaining_amount|currency:user }}
+                        </strong>
+                    </div>
+                    {% if goal.target_date %}
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-muted">Target Date:</span>
+                        <small>{{ goal.target_date|date:"M d, Y" }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if goal.is_completed %}
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle"></i> Goal Achieved!
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <div class="btn-group w-100" role="group">
+                    <a href="{% url 'goal_edit' goal.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addProgressModal{{ goal.pk }}">
+                        <i class="bi bi-plus-circle"></i> Add
+                    </button>
+                    <a href="{% url 'goal_delete' goal.pk %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Progress Modal -->
+    <div class="modal fade" id="addProgressModal{{ goal.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Progress to {{ goal.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'goal_add_progress' goal.pk %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Amount to Add</label>
+                            <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required placeholder="0.00">
+                        </div>
+                        <div class="alert alert-info mb-0">
+                            <small>Current: {{ goal.current_amount|currency:user }} | Target: {{ goal.target_amount|currency:user }}</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Add Progress</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-bullseye" style="font-size: 3rem; color: var(--text-secondary);"></i>
+        <p class="text-muted mt-3">No goals set yet. <a href="{% url 'goal_create' %}">Create your first savings goal</a></p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
