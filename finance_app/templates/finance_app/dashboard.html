@@ -178,7 +178,13 @@
                                             N/A
                                         {% endif %}
                                     </td>
-                                    <td class="text-end">${{ expense.amount|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        {% if user_currency == '₹' or user_currency == '€' or user_currency == '£' or user_currency == '¥' or user_currency == '₽' or user_currency == '₺' %}
+                                            {{ expense.amount|floatformat:2 }} {{ user_currency }}
+                                        {% else %}
+                                            {{ user_currency }}{{ expense.amount|floatformat:2 }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -220,7 +226,13 @@
                                             N/A
                                         {% endif %}
                                     </td>
-                                    <td class="text-end">${{ expense.amount|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        {% if user_currency == '₹' or user_currency == '€' or user_currency == '£' or user_currency == '¥' or user_currency == '₽' or user_currency == '₺' %}
+                                            {{ expense.amount|floatformat:2 }} {{ user_currency }}
+                                        {% else %}
+                                            {{ user_currency }}{{ expense.amount|floatformat:2 }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -253,6 +265,9 @@
 
 {% block extra_js %}
 <script>
+    // Get user's currency symbol
+    const currencySymbol = '{{ user_currency|escapejs }}';
+    
     // Get theme-aware colors
     function getChartColors() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -311,7 +326,17 @@
                     titleColor: colors.textColor,
                     bodyColor: colors.textColor,
                     borderColor: colors.borderColor,
-                    borderWidth: 1
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y || 0;
+                            // Format currency based on symbol position
+                            const formattedValue = ['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol) 
+                                ? value.toFixed(2) + ' ' + currencySymbol 
+                                : currencySymbol + value.toFixed(2);
+                            return context.dataset.label + ': ' + formattedValue;
+                        }
+                    }
                 }
             },
             scales: {
@@ -331,7 +356,11 @@
                     ticks: {
                         color: colors.textColor,
                         callback: function(value) {
-                            return '$' + value.toFixed(2);
+                            // Format currency based on symbol position
+                            if (['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol)) {
+                                return value.toFixed(2) + ' ' + currencySymbol;
+                            }
+                            return currencySymbol + value.toFixed(2);
                         }
                     }
                 }
@@ -376,7 +405,11 @@
                     borderWidth: 1,
                     callbacks: {
                         label: function(context) {
-                            return context.label + ': $' + context.parsed.toFixed(2);
+                            // Format currency based on symbol position
+                            const formattedValue = ['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol) 
+                                ? context.parsed.toFixed(2) + ' ' + currencySymbol 
+                                : currencySymbol + context.parsed.toFixed(2);
+                            return context.label + ': ' + formattedValue;
                         }
                     }
                 }

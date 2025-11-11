@@ -338,6 +338,10 @@ def export_csv_view(request):
     user = request.user
     expenses = Expense.objects.filter(user=user).order_by('-date', '-created_at')
     
+    # Get user's currency
+    currency_info = get_user_currency(user)
+    currency_symbol = currency_info['symbol']
+    
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="expenses_{user.username}_{timezone.now().strftime("%Y%m%d")}.csv"'
     
@@ -345,11 +349,13 @@ def export_csv_view(request):
     writer.writerow(['Date', 'Title', 'Category', 'Amount', 'Description'])
     
     for expense in expenses:
+        # Format amount with user's currency
+        formatted_amount = format_currency(expense.amount, currency_symbol)
         writer.writerow([
             expense.date.strftime('%Y-%m-%d'),
             expense.title,
             expense.category.name if expense.category else 'N/A',
-            expense.amount,
+            formatted_amount,
             expense.description
         ])
     
@@ -361,6 +367,10 @@ def export_pdf_view(request):
     """Export expenses to PDF"""
     user = request.user
     expenses = Expense.objects.filter(user=user).order_by('-date', '-created_at')
+    
+    # Get user's currency
+    currency_info = get_user_currency(user)
+    currency_symbol = currency_info['symbol']
     
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="expenses_{user.username}_{timezone.now().strftime("%Y%m%d")}.pdf"'
@@ -376,18 +386,21 @@ def export_pdf_view(request):
     
     # Summary
     total = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-    summary = Paragraph(f"Total Expenses: ${total:,.2f} | Count: {expenses.count()}", styles['Normal'])
+    formatted_total = format_currency(total, currency_symbol)
+    summary = Paragraph(f"Total Expenses: {formatted_total} | Count: {expenses.count()}", styles['Normal'])
     elements.append(summary)
     elements.append(Spacer(1, 0.2*inch))
     
     # Table data
     data = [['Date', 'Title', 'Category', 'Amount']]
     for expense in expenses:
+        # Format amount with user's currency
+        formatted_amount = format_currency(expense.amount, currency_symbol)
         data.append([
             expense.date.strftime('%Y-%m-%d'),
             expense.title,
             expense.category.name if expense.category else 'N/A',
-            f"${expense.amount:,.2f}"
+            formatted_amount
         ])
     
     table = Table(data)

@@ -376,7 +376,13 @@
             const summary = data.spending_summary;
             const totalSpentEl = document.querySelector('.card.stat-card h3');
             if (totalSpentEl) {
-                totalSpentEl.textContent = '$' + parseFloat(summary.total_spent).toFixed(2);
+                const currencySymbol = '{{ user_currency|escapejs }}';
+                const amount = parseFloat(summary.total_spent).toFixed(2);
+                // Format currency based on symbol position
+                const formattedValue = ['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol) 
+                    ? amount + ' ' + currencySymbol 
+                    : currencySymbol + amount;
+                totalSpentEl.textContent = formattedValue;
             }
         }
         

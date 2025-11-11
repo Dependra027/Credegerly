@@ -100,6 +100,9 @@
 
 {% block extra_js %}
 <script>
+    // Get user's currency symbol
+    const currencySymbol = '{{ user_currency|escapejs }}';
+    
     // Get theme-aware colors
     function getChartColors() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -167,7 +170,11 @@
                             const value = context.parsed || 0;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                             const percentage = ((value / total) * 100).toFixed(1);
-                            return label + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
+                            // Format currency based on symbol position
+                            const formattedValue = ['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol) 
+                                ? value.toFixed(2) + ' ' + currencySymbol 
+                                : currencySymbol + value.toFixed(2);
+                            return label + ': ' + formattedValue + ' (' + percentage + '%)';
                         }
                     }
                 }
@@ -184,7 +191,7 @@
         data: {
             labels: barData.map(item => item.category__name || 'Uncategorized'),
             datasets: [{
-                label: 'Amount ($)',
+                label: 'Amount (' + currencySymbol + ')',
                 data: barData.map(item => parseFloat(item.total)),
                 backgroundColor: colors.barColor,
                 borderColor: colors.barBorder,
@@ -203,7 +210,17 @@
                     titleColor: colors.textColor,
                     bodyColor: colors.textColor,
                     borderColor: colors.borderColor,
-                    borderWidth: 1
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y || 0;
+                            // Format currency based on symbol position
+                            const formattedValue = ['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol) 
+                                ? value.toFixed(2) + ' ' + currencySymbol 
+                                : currencySymbol + value.toFixed(2);
+                            return context.dataset.label.split('(')[0].trim() + ': ' + formattedValue;
+                        }
+                    }
                 }
             },
             scales: {
@@ -223,7 +240,11 @@
                     ticks: {
                         color: colors.textColor,
                         callback: function(value) {
-                            return '$' + value.toFixed(2);
+                            // Format currency based on symbol position
+                            if (['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol)) {
+                                return value.toFixed(2) + ' ' + currencySymbol;
+                            }
+                            return currencySymbol + value.toFixed(2);
                         }
                     }
                 }
@@ -269,7 +290,17 @@
                     titleColor: colors.textColor,
                     bodyColor: colors.textColor,
                     borderColor: colors.borderColor,
-                    borderWidth: 1
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y || 0;
+                            // Format currency based on symbol position
+                            const formattedValue = ['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol) 
+                                ? value.toFixed(2) + ' ' + currencySymbol 
+                                : currencySymbol + value.toFixed(2);
+                            return context.dataset.label + ': ' + formattedValue;
+                        }
+                    }
                 }
             },
             scales: {
@@ -289,7 +320,11 @@
                     ticks: {
                         color: colors.textColor,
                         callback: function(value) {
-                            return '$' + value.toFixed(2);
+                            // Format currency based on symbol position
+                            if (['₹', '€', '£', '¥', '₽', '₺'].includes(currencySymbol)) {
+                                return value.toFixed(2) + ' ' + currencySymbol;
+                            }
+                            return currencySymbol + value.toFixed(2);
                         }
                     }
                 }
